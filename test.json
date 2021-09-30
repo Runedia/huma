@@ -1,0 +1,26 @@
+test = {
+    "test3": {
+        "st1": "1048576",
+        "st2": [ {"asdf":"111"}, {"asdf":"barweb"}]
+    }
+}
+
+
+test
+
+
+test["test"] = > "kkk"
+test["test2"] => [{"asdf":"111"},{"asdf":"barweb"}]
+
+test["test3"] = {
+    "st1": "1048576",
+    "st2": [ {"asdf":"111"}, {"asdf":"barweb"}]
+}
+
+A = {
+    "st1": "1048576",
+    "st2": [ {"asdf":"111"}, {"asdf":"barweb"}]
+}
+
+
+test["test3"]["st2"]=[ {"asdf":"111"}, {"asdf":"barweb"}]
