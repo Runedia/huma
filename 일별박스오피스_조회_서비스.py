@@ -1,14 +1,6 @@
 """
-영화목록 조회 서비스
-(http://www.kobis.or.kr/kobisopenapi/homepg/apiservice/searchServiceInfo.do?serviceId=searchMovieList)
-
-최초 작성일: 2021-09-30
-작성자: 김지호
-버전: 1.0.1
-
-변경이력
-- 2021-09-30 | 1.0.0 | 김지호 | 최초작성
-- 2021-10-01 | 1.0.1 | 김지호 | 구조 변경 및 DB 중복 제어
+박스오피스 조회 서비스
+(http://www.kobis.or.kr/kobisopenapi/homepg/apiservice/searchServiceInfo.do)
 
 <개발 순서>
 1. DB 연결
@@ -16,11 +8,6 @@
 3. REST API 가공
 4. DATA 저장
 5. 오류제어
-
-영화 목록 조회 조건
-기간: 2010 ~
-장르: 장편
-국가: 한국
 """
 
 from urllib.parse import urlparse, urlunparse, urlencode
@@ -29,11 +16,11 @@ import json
 import pandas as pd
 import datetime
 import math
-from cf import API_KEY, KOREA, FEATURE, MOVIE_LIST
+from cf import API_KEY, BOXOFFICE_LIST
 from DBMTool import conn
 
 
-def get_movie_list_url(curPage=1, itemPerPage=100):
+def get_boxoffice_list_url(curPage=1, itemPerPage=10):
     """
     영화 목록을 가져오는 URL 생성 함수
 
@@ -45,21 +32,20 @@ def get_movie_list_url(curPage=1, itemPerPage=100):
         str: 영화 목록 REST API URL
     """
 
-    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json'
+    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json'
     params = {
         'key': API_KEY,
+        'targetDt' : 
         'curPage': curPage,
         'itemPerPage': itemPerPage,
-        'prdtStartYear': '2010',
-        'prdtEndYear': '2021',
-        'repNationCd': KOREA,
-        'movieTypeCd': FEATURE,
+        'repNationCd': 'K',
     }
     # openStartDt과 openEndDt은 재개봉이 포함이 된다.
 
     url = urlparse(baseURL)
     url = url._replace(query=urlencode(params))
     return urlunparse(url)
+
 
 
 def get_movie_list_request(url):
