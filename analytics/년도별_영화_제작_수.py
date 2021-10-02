@@ -19,12 +19,13 @@ from itertools import cycle, islice
 from DBMTool import conn
 import pandas as pd
 from cf import MOVIE_LIST
+from Utils import get_chart_colors
 
 font_name = font_manager.FontProperties(fname="../assets/D2Coding-Ver1.3.2-20180524.ttf").get_name()
 rc('font', family=font_name)
 
 
-def generate_plot():
+def generated_report():
     sql = f"""
         SELECT 
             prdtYear, COUNT(*) as '영화 제작 수'
@@ -36,8 +37,7 @@ def generate_plot():
     df = pd.read_sql_query(sql, conn)
     print(df)
 
-    my_colors = list(islice(cycle(['#3DADF2', '#69D94A', '#F2D852', '#F2B950', '#F24949']), None, len(df)))
-    ax = df.plot(kind='bar', x='prdtYear', y='영화 제작 수', color=my_colors, title='년도별 영화 제작 수')
+    ax = df.plot(kind='bar', x='prdtYear', y='영화 제작 수', color=get_chart_colors(df), title='년도별 영화 제작 수')
     ax.set_xlabel(None)
 
     # x 축 label 각도
@@ -56,4 +56,4 @@ def generate_plot():
 
 
 if __name__ == '__main__':
-    generate_plot()
+    generated_report()

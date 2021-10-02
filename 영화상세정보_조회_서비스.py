@@ -162,7 +162,7 @@ def get_movie_info():
             if len(temp_ary):
                 df_temp = pd.DataFrame(temp_ary)
 
-                print(df_temp.to_string())
+                # print(df_temp.to_string())
 
                 # database에 조회한 영화목록 저장
                 # (테이블명, 엔진, 인덱스 생성 여부, 넣는 방법)
