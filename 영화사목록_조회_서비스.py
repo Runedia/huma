@@ -4,88 +4,21 @@
 
 최초 작성일: 2021-09-30
 작성자: 김태희
-버전: 1.0.1
+버전: 1.0.2
 
 변경이력
 - 2021-09-30 | 1.0.0 | 김태희 | 최초작성
 - 2021-10-01 | 1.0.1 | 김태희 | 구조 변경 및 DB 중복 제어
-
-<개발 순서>
-1. DB 연결
-2. REST API 조회
-3. REST API 가공
-4. DATA 저장
-5. 오류제어
+- 2021-10-03 | 1.0.2 | 김지호 | 구조 변경 및 주석 추가
 """
-from urllib.parse import urlparse, urlunparse, urlencode
-import urllib.request
-import json
-import pandas as pd
-import datetime
+
 import math
-from cf import API_KEY, COMPANY_LIST
+
+import pandas as pd
+
+from API_Common import get_api_url, get_api_request, duplication_check_code
 from DBMTool import conn
-
-
-def get_company_list_url(curPage=1, itemPerPage=100):
-    """
-    영화사 목록을 가져오는 URL 생성 함수
-
-    Args:
-        curPage (int): 현재 페이지
-        itemPerPage (int): 페이지당 항목 수
-
-    Returns:
-        str: 영화사 목록 REST API URL
-    """
-
-    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/company/searchCompanyList.json'
-    params = {
-        'key': API_KEY,
-        'curPage': curPage,
-        'itemPerPage': itemPerPage,
-    }
-
-    url = urlparse(baseURL)
-    url = url._replace(query=urlencode(params))
-    return urlunparse(url)
-
-
-def get_company_list_request(url):
-    """
-    영화사 목록을 조회하는 함수
-    """
-
-    print(f'REQUEST URL (COMPANY LIST): {url}')
-    # 데이터를 가져올 Request 객체 생성
-    req = urllib.request.Request(url)
-
-    try:
-        # 데이터 조회
-        response = urllib.request.urlopen(req)
-
-        # Http Code가 200일 경우 통신 성공
-        if response.getcode() == 200:
-            return response.read().decode('utf-8')
-    except Exception as e:
-        print(e)
-        print(f'[{datetime.datetime.now()}] Error for URL : {url}')
-        return None
-
-
-def duplication_check_company_list(companyCd):
-    """
-    companylist 테이블에 조회하여 영화사코드 중복여부를 확인
-
-    Returns:
-        bool: 중복여부
-    """
-
-    result = conn.execute(f"SELECT COUNT(*) FROM {COMPANY_LIST} WHERE companyCd = '{companyCd}'").fetchone()
-    if result is None:
-        return True
-    else:
-        return bool(result[0])
+from cf import API_KEY, COMPANY_LIST
 
 
 def get_company_list():
@@ -93,33 +26,47 @@ def get_company_list():
     영화사 목록 데이터를 정제하여 DB에 저장하는 함수
     """
 
+    # 영화사 목록 baseURL
+    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/company/searchCompanyList.json'
+
+    # 현재 페이지
     curPage = 1
+    # 페이지당 항목 수
     itemPerPage = 100
+    # 마지막 페이지
     maxPage = 1
 
     while True:
-        url = get_company_list_url(curPage, itemPerPage)
-        response = get_company_list_request(url)
+        params = {
+            'key': API_KEY,
+            'curPage': curPage,
+            'itemPerPage': itemPerPage,
+        }
+        url = get_api_url(baseURL, params)
+        response = get_api_request(url, "COMPANY LIST")
 
         if response is None:  # 오류일 경우 패스 (오류무시)
             pass
         else:
             # JSON 구조 예시
             # http://kobis.or.kr/kobisopenapi/webservice/rest/company/searchCompanyList.json?key=eec39ee4692d829911723511a238286d&companyNm=%EA%B8%88%EC%84%B1
-            response_json = json.loads(response)
-            totCnt = response_json['companyListResult']['totCnt']
+
+            # API 조회 시 totCnt라는 항목에 최대 갯수를 반환해준다.
+            # itemPerPage를 기준으로 계산하여 마지막 페이지를 계산한다.
+            totCnt = response['companyListResult']['totCnt']
             maxPage = math.ceil(totCnt / itemPerPage)
 
             # companyListResult에 포함되어 있는 companyList
-            df_comlist = pd.DataFrame(response_json['companyListResult']['companyList'])
+            df_comlist = pd.DataFrame(response['companyListResult']['companyList'])
             # 영화사 데이터 filmoNames 삭제
             df_comlist = df_comlist.drop(columns='filmoNames')
 
-            # 영화 목록 중복 제어
+            # 영화사 목록 중복 제어
             temp_ary = []
 
             for index, row in df_comlist.iterrows():
-                if not duplication_check_company_list(row['companyCd']):
+                sql = f"SELECT COUNT(*) FROM {COMPANY_LIST} WHERE companyCd = '{row['companyCd']}'"
+                if not duplication_check_code(conn, sql):
                     temp_ary.append(row)
 
             if len(temp_ary):

@@ -2,86 +2,28 @@
 박스오피스 조회 서비스
 (http://www.kobis.or.kr/kobisopenapi/homepg/apiservice/searchServiceInfo.do)
 
-<개발 순서>
-1. DB 연결
-2. REST API 조회
-3. REST API 가공
-4. DATA 저장
-5. 오류제어
+최초 작성일: 2021-10-01
+작성자: 김태희
+버전: 1.0.1
+
+변경이력
+- 2021-10-01 | 1.0.0 | 김태희 | 최초작성
+- 2021-10-03 | 1.0.1 | 김지호 | 구조 변경 및 주석 추가
 """
 
-from urllib.parse import urlparse, urlunparse, urlencode
-import urllib.request
-import json
-import pandas as pd
 import datetime
-from cf import API_KEY, BOXOFFICE_LIST
+
+import pandas as pd
+
+from API_Common import get_api_url, get_api_request, duplication_check_code
 from DBMTool import conn
+from cf import API_KEY, BOXOFFICE_LIST
 
-# START_DAYS = datetime.datetime(2010, 1, 1)
-START_DAYS = datetime.datetime(2011, 9, 26)
-END_DAYS = datetime.datetime.now() - datetime.timedelta(days=1)
+# 조회 시작일
+START_DAYS = datetime.date(2010, 1, 1)
 
-
-def get_boxoffice_list_url(targetDt):
-    """
-    박스오피스 목록을 가져오는 URL 생성 함수
-
-    Args:
-        curPage (int): 현재 페이지
-        itemPerPage (int): 페이지당 항목 수
-
-    Returns:
-        str: 박스오피스 목록 REST API URL
-    """
-
-    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json'
-    params = {
-        'key': API_KEY,
-        'targetDt': targetDt,
-        'repNationCd': 'K',
-    }
-
-    url = urlparse(baseURL)
-    url = url._replace(query=urlencode(params))
-    return urlunparse(url)
-
-
-def get_boxoffice_list_request(url):
-    """
-    박스오피스 목록을 조회하는 함수
-    """
-
-    print(f'REQUEST URL (BOXOFFICE) LIST): {url}')
-    # 데이터를 가져올 Request 객체를 생성한다.
-    req = urllib.request.Request(url)
-
-    try:
-        # 데이터를 조회한다.
-        response = urllib.request.urlopen(req)
-
-        # Http Code가 200일 경우 통신 성공
-        if response.getcode() == 200:
-            return response.read().decode('utf-8')
-    except Exception as e:
-        print(e)
-        print(f'[{datetime.datetime.now()}] Error for URL : {url}')
-        return None
-
-
-def duplication_check_boxoffice_list(movieCd, targetDt):
-    """
-    boxoffice 테이블에 조회하여 영화코드 중복여부를 확인한다.
-
-    Returns:
-        bool: 중복여부
-    """
-
-    result = conn.execute(f"SELECT COUNT(*) FROM {BOXOFFICE_LIST} WHERE movieCd = '{movieCd}' AND targetDt = '{targetDt}'").fetchone()
-    if result is None:
-        return True
-    else:
-        return bool(result[0])
+# 조회 종료일
+END_DAYS = datetime.date.today() - datetime.timedelta(days=1)
 
 
 def get_boxoffice_list():
@@ -89,23 +31,31 @@ def get_boxoffice_list():
     박스오피스 데이터를 정제하여 DB에 저장하는 함수
     """
 
+    # 박스오피스 baseURL
+    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json'
+
     posDt = START_DAYS
 
     while True:
         targetDt = posDt.strftime('%Y%m%d')
-        url = get_boxoffice_list_url(targetDt)
-        response = get_boxoffice_list_request(url)
+        params = {
+            'key': API_KEY,
+            'targetDt': targetDt,
+            'repNationCd': 'K',
+        }
+
+        url = get_api_url(baseURL, params)
+        response = get_api_request(url, "BOXOFFICE LIST")
 
         if response is None:  # 오류일 경우 패스 (오류무시)
             pass
         else:
             # JSON 구조 예시
+            # http://kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.xml?key=f5eef3421c602c6cb7ea224104795888&targetDt=20120101
 
-            response_json = json.loads(response)
-
-            df_boxofficelist = pd.DataFrame(response_json['boxOfficeResult']['dailyBoxOfficeList'])
+            df_boxofficelist = pd.DataFrame(response['boxOfficeResult']['dailyBoxOfficeList'])
             df_boxofficelist['targetDt'] = targetDt
-            
+
             temp_open_dt = []
             for idx, row in df_boxofficelist['openDt'].iteritems():
                 openDt = row
@@ -120,7 +70,8 @@ def get_boxoffice_list():
             temp_ary = []
 
             for index, row in df_boxofficelist.iterrows():
-                if not duplication_check_boxoffice_list(row['movieCd'], targetDt):
+                sql = f"SELECT COUNT(*) FROM {BOXOFFICE_LIST} WHERE movieCd = '{row['movieCd']}' AND targetDt = '{targetDt}'"
+                if not duplication_check_code(conn, sql):
                     temp_ary.append(row)
 
             if len(temp_ary):

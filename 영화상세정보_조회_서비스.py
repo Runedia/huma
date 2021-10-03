@@ -4,73 +4,27 @@
 
 최초 작성일: 2021-10-01
 작성자: 김지호
-버전: 1.0.0
+버전: 1.0.1
 
 변경이력
 - 2021-10-01 | 1.0.0 | 김지호 | 최초작성
-
-<개발 순서>
-1. DB 연결
-2. REST API 조회
-3. REST API 가공
-4. DATA 저장
-5. 오류제어
+- 2021-10-03 | 1.0.1 | 김지호 | 구조 변경 및 주석 추가
 """
 
-from urllib.parse import urlparse, urlunparse, urlencode
-import urllib.request
-import json
 import pandas as pd
-import datetime
-from cf import API_KEY, MOVIE_LIST, MOVIE_INFO
+
+from API_Common import get_api_url, get_api_request, duplication_check_code
 from DBMTool import conn
-
-
-def get_movie_info_url(movieCd):
-    """
-    영화 상세 정보를 가져오는 URL 생성 함수
-
-    Args:
-        movieCd (str): 영화코드
-
-    Returns:
-        str: 영화 상세 정보 REST API URL
-    """
-
-    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json'
-    params = {
-        'key': API_KEY,
-        'movieCd': movieCd
-    }
-
-    url = urlparse(baseURL)
-    url = url._replace(query=urlencode(params))
-    return urlunparse(url)
-
-
-def get_movie_info_request(url):
-    """
-    영화 상세 정보를 조회하는 함수
-    """
-
-    print(f'REQUEST URL (MOVIE INFO): {url}')
-    # 데이터를 가져올 Request 객체를 생성한다.
-    req = urllib.request.Request(url)
-
-    try:
-        # 데이터를 조회한다.
-        response = urllib.request.urlopen(req)
-
-        # Http Code가 200일 경우 통신 성공
-        if response.getcode() == 200:
-            return response.read().decode('utf-8')
-    except Exception as e:
-        print(e)
-        print(f'[{datetime.datetime.now()}] Error for URL : {url}')
-        return None
+from cf import API_KEY, MOVIE_LIST, MOVIE_INFO
 
 
 def get_movie_code_list():
+    """
+    영화정보가 수집되지 않은 영화코드 목록
+
+    Returns:
+        list: 영화코드 목록
+    """
     result = conn.execute(f"""
         SELECT 
             ml.movieCd
@@ -88,41 +42,34 @@ def get_movie_code_list():
         return result
 
 
-def duplication_check_movie_info(movieCd):
-    """
-    MOVIE_INFO 테이블에 조회하여 영화코드 중복여부를 확인한다.
-
-    Returns:
-        bool: 중복여부
-    """
-
-    result = conn.execute(f"SELECT COUNT(*) FROM {MOVIE_INFO} WHERE movieCd = '{movieCd}'").fetchone()
-    if result is None:
-        return True
-    else:
-        return bool(result[0])
-
-
 def get_movie_info():
     """
     영화 상세 정보 데이터를 정제하여 DB에 저장하는 함수
     """
 
+    # 영화 코드 목록
     movieCds = get_movie_code_list()
+
+    # 영화 상세 정보 baseURL
+    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json'
 
     for data in movieCds:
         movieCd = data[0]
+        params = {
+            'key': API_KEY,
+            'movieCd': movieCd
+        }
 
-        url = get_movie_info_url(movieCd)
-        response = get_movie_info_request(url)
+        url = get_api_url(baseURL, params)
+        response = get_api_request(url, "MOVIE INFO")
 
         if response is None:  # 오류일 경우 패스 (오류무시)
             pass
         else:
             # JSON 구조 예시
             # http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.xml?key=f5eef3421c602c6cb7ea224104795888&movieCd=20190815
-            response_json = json.loads(response)
-            df_mvinfo = pd.DataFrame([response_json['movieInfoResult']['movieInfo']])
+
+            df_mvinfo = pd.DataFrame([response['movieInfoResult']['movieInfo']])
             df_mvinfo = df_mvinfo.drop(columns='staffs')  # 스텝
             df_mvinfo = df_mvinfo.drop(columns='showTypes')  # 상영형태
             df_mvinfo['showTm'] = df_mvinfo['showTm'].fillna(0, inplace=True)
@@ -141,6 +88,7 @@ def get_movie_info():
                 row['directors'] = directors
 
                 # 배우 (임시) 추후 영화인 정보와 연동
+                # 일반적으로 인물정보 조회가 가능한 배우만 영문명이 기록되어 있음
                 actors = ",".join([nat['peopleNm'] for nat in row['actors'] if str(nat['peopleNmEn']).strip()])
                 row['actors'] = actors
 
@@ -156,7 +104,8 @@ def get_movie_info():
             temp_ary = []
 
             for index, row in df_mvinfo.iterrows():
-                if not duplication_check_movie_info(movieCd):
+                sql = f"SELECT COUNT(*) FROM {MOVIE_INFO} WHERE movieCd = '{movieCd}'"
+                if not duplication_check_code(conn, sql):
                     temp_ary.append(row)
 
             if len(temp_ary):

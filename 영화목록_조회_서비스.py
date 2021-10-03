@@ -4,18 +4,12 @@
 
 최초 작성일: 2021-09-30
 작성자: 김지호
-버전: 1.0.1
+버전: 1.0.2
 
 변경이력
 - 2021-09-30 | 1.0.0 | 김지호 | 최초작성
 - 2021-10-01 | 1.0.1 | 김지호 | 구조 변경 및 DB 중복 제어
-
-<개발 순서>
-1. DB 연결
-2. REST API 조회
-3. REST API 가공
-4. DATA 저장
-5. 오류제어
+- 2021-10-03 | 1.0.2 | 김지호 | 구조 변경 및 주석 추가
 
 영화 목록 조회 조건
 기간: 2010 ~
@@ -23,80 +17,13 @@
 국가: 한국
 """
 
-from urllib.parse import urlparse, urlunparse, urlencode
-import urllib.request
-import json
-import pandas as pd
-import datetime
 import math
-from cf import API_KEY, KOREA, FEATURE, MOVIE_LIST
+
+import pandas as pd
+
+from API_Common import get_api_url, get_api_request, duplication_check_code
 from DBMTool import conn
-
-
-def get_movie_list_url(curPage=1, itemPerPage=100):
-    """
-    영화 목록을 가져오는 URL 생성 함수
-
-    Args:
-        curPage (int): 현재 페이지
-        itemPerPage (int): 페이지당 항목 수
-
-    Returns:
-        str: 영화 목록 REST API URL
-    """
-
-    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json'
-    params = {
-        'key': API_KEY,
-        'curPage': curPage,
-        'itemPerPage': itemPerPage,
-        'prdtStartYear': '2010',
-        'prdtEndYear': '2021',
-        'repNationCd': KOREA,
-        'movieTypeCd': FEATURE,
-    }
-    # openStartDt과 openEndDt은 재개봉이 포함이 된다.
-
-    url = urlparse(baseURL)
-    url = url._replace(query=urlencode(params))
-    return urlunparse(url)
-
-
-def get_movie_list_request(url):
-    """
-    영화 목록을 조회하는 함수
-    """
-
-    print(f'REQUEST URL (MOVIE LIST): {url}')
-    # 데이터를 가져올 Request 객체를 생성한다.
-    req = urllib.request.Request(url)
-
-    try:
-        # 데이터를 조회한다.
-        response = urllib.request.urlopen(req)
-
-        # Http Code가 200일 경우 통신 성공
-        if response.getcode() == 200:
-            return response.read().decode('utf-8')
-    except Exception as e:
-        print(e)
-        print(f'[{datetime.datetime.now()}] Error for URL : {url}')
-        return None
-
-
-def duplication_check_movie_list(movieCd):
-    """
-    MOVIE_LIST 테이블에 조회하여 영화코드 중복여부를 확인한다.
-
-    Returns:
-        bool: 중복여부
-    """
-
-    result = conn.execute(f"SELECT COUNT(*) FROM {MOVIE_LIST} WHERE movieCd = '{movieCd}'").fetchone()
-    if result is None:
-        return True
-    else:
-        return bool(result[0])
+from cf import API_KEY, MOVIE_LIST
 
 
 def get_movie_list():
@@ -104,24 +31,43 @@ def get_movie_list():
     영화 목록 데이터를 정제하여 DB에 저장하는 함수
     """
 
+    # 영화 목록 baseURL
+    baseURL = 'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json'
+
+    # 현재 페이지
     curPage = 1
+    # 페이지당 항목 수
     itemPerPage = 100
+    # 마지막 페이지
     maxPage = 1
 
     while True:
-        url = get_movie_list_url(curPage, itemPerPage)
-        response = get_movie_list_request(url)
+        params = {
+            'key': API_KEY,
+            'curPage': curPage,
+            'itemPerPage': itemPerPage,
+            'prdtStartYear': '2010',
+            'prdtEndYear': '2021',
+            # repNationCd (http://www.kobis.or.kr/kobisopenapi/webservice/rest/code/searchCodeList.xml?key={API_KEY}&comCode=2204)
+            'repNationCd': '22041011',
+            # movieTypeCd (http://kobis.or.kr/kobisopenapi/webservice/rest/code/searchCodeList.xml?key={API_KEY}&comCode=2201)
+            'movieTypeCd': '220101',
+        }
+        url = get_api_url(baseURL, params)
+        response = get_api_request(url, "MOVIE LIST")
 
         if response is None:  # 오류일 경우 패스 (오류무시)
             pass
         else:
             # JSON 구조 예시
             # http://kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json?key=f5eef3421c602c6cb7ea224104795888&movieNm=%EB%B3%B4%EC%9D%B4%EC%8A%A4
-            response_json = json.loads(response)
-            totCnt = response_json['movieListResult']['totCnt']
+
+            # API 조회 시 totCnt라는 항목에 최대 갯수를 반환해준다.
+            # itemPerPage를 기준으로 계산하여 마지막 페이지를 계산한다.
+            totCnt = response['movieListResult']['totCnt']
             maxPage = math.ceil(totCnt / itemPerPage)
 
-            df_mvlist = pd.DataFrame(response_json['movieListResult']['movieList'])
+            df_mvlist = pd.DataFrame(response['movieListResult']['movieList'])
             # 영화 상세정보가 더 명확하게 표출되어 데이터 삭제
             df_mvlist = df_mvlist.drop(columns='directors')  # 영화감독
             df_mvlist = df_mvlist.drop(columns='companys')  # 제작사
@@ -130,7 +76,8 @@ def get_movie_list():
             temp_ary = []
 
             for index, row in df_mvlist.iterrows():
-                if not duplication_check_movie_list(row['movieCd']):
+                sql = f"SELECT COUNT(*) FROM {MOVIE_LIST} WHERE movieCd = '{row['movieCd']}'"
+                if not duplication_check_code(conn, sql):
                     temp_ary.append(row)
 
             if len(temp_ary):
