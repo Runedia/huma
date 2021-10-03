@@ -4,35 +4,24 @@
 
 최초 작성일: 2021-10-01
 작성자: 김지호
-버전: 1.0.0
+버전: 1.0.1
 
 변경이력
 - 2021-10-01 | 1.0.0 | 김지호 | 최초작성
-
-<개발 순서>
-1. DB 연결
-2. 데이터 조회
-3. 오류제어
+- 2021-10-03 | 1.0.1 | 김지호 | 코드 정리
 """
 
-from matplotlib import font_manager, rc, pyplot as plt
-from DBMTool import conn
-import pandas as pd
-from cf import MOVIE_LIST, MOVIE_INFO
-from Utils import get_chart_colors
-
 import re
-from konlpy.tag import Okt
 from collections import Counter
+
+import pandas as pd
+from konlpy.tag import Okt
+from matplotlib import pyplot as plt
 from wordcloud import WordCloud
 
-font_path = '../assets/D2Coding-Ver1.3.2-20180524.ttf'
-font_name = font_manager.FontProperties(fname=font_path).get_name()
-rc('font', family=font_name)
-
-
-def color_func(word, font_size, position, orientation, random_state, **kwargs):
-    return f"rgb({random_state.randint(0, 255)},{random_state.randint(0, 255)},{random_state.randint(0, 255)})"
+from DBMTool import conn
+from analytics.Utils import color_chart_func,color_wc_func, font_path
+from cf import MOVIE_LIST, MOVIE_INFO
 
 
 def generated_report():
@@ -68,7 +57,7 @@ def generated_report():
     plt.grid(True)
     sorted_key = sorted(word_count, key=word_count.get, reverse=True)
     sorted_values = sorted(word_count.values(), reverse=True)
-    plt.bar(range(len(word_count)), sorted_values, align='center', color=get_chart_colors(df))
+    plt.bar(range(len(word_count)), sorted_values, align='center', color=color_chart_func(df))
     plt.xticks(range(len(word_count)), list(sorted_key), rotation='75')
     plt.title('영화명에 많이 사용된 단어 (R18+)')
     plt.show()
@@ -78,7 +67,7 @@ def generated_report():
         if len(str(tag)) > 1:
             word_count[tag] = counts
 
-    wc = WordCloud(font_path, background_color='ivory', width=800, height=600, color_func=color_func, random_state=True)
+    wc = WordCloud(font_path, background_color='ivory', width=800, height=600, color_func=color_wc_func, random_state=True)
     cloud = wc.generate_from_frequencies(word_count)
     plt.figure(figsize=(10, 10))
     plt.imshow(cloud)

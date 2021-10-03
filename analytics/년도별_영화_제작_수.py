@@ -3,26 +3,19 @@
 
 최초 작성일: 2021-10-01
 작성자: 김지호
-버전: 1.0.0
+버전: 1.0.1
 
 변경이력
 - 2021-10-01 | 1.0.0 | 김지호 | 최초작성
-
-<개발 순서>
-1. DB 연결
-2. 데이터 조회
-3. 오류제어
+- 2021-10-03 | 1.0.1 | 김지호 | 코드 정리
 """
 
-from matplotlib import font_manager, rc, pyplot as plt
-from itertools import cycle, islice
-from DBMTool import conn
 import pandas as pd
-from cf import MOVIE_LIST
-from Utils import get_chart_colors
+from matplotlib import pyplot as plt
 
-font_name = font_manager.FontProperties(fname="../assets/D2Coding-Ver1.3.2-20180524.ttf").get_name()
-rc('font', family=font_name)
+from DBMTool import conn
+from analytics.Utils import color_chart_func
+from cf import MOVIE_LIST
 
 
 def generated_report():
@@ -37,7 +30,7 @@ def generated_report():
     df = pd.read_sql_query(sql, conn)
     print(df)
 
-    ax = df.plot(kind='bar', x='prdtYear', y='영화 제작 수', color=get_chart_colors(df), title='년도별 영화 제작 수')
+    ax = df.plot(kind='bar', x='prdtYear', y='영화 제작 수', color=color_chart_func(df), title='연도별 영화 제작 수')
     ax.set_xlabel(None)
 
     # x 축 label 각도
