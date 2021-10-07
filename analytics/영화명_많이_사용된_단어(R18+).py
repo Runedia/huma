@@ -1,6 +1,6 @@
 """
 영화명 많이 사용된 단어 (en, ko) R18+
-워드클라우드
+막대 차트, 워드클라우드
 
 최초 작성일: 2021-10-01
 작성자: 김지호
@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from wordcloud import WordCloud
 
 from DBMTool import conn
-from analytics.Utils import color_chart_func,color_wc_func, font_path
+from analytics.Utils import color_chart_func, color_wc_func, font_path
 from cf import MOVIE_LIST, MOVIE_INFO
 
 

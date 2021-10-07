@@ -1,5 +1,6 @@
 """
-년도별 영화 제작 수
+연도별 영화 제작 수
+막대 차트
 
 최초 작성일: 2021-10-01
 작성자: 김지호
@@ -21,16 +22,17 @@ from cf import MOVIE_LIST
 def generated_report():
     sql = f"""
         SELECT 
-            prdtYear, COUNT(*) as '영화 제작 수'
+            prdtYear, COUNT(*) as '영화 수'
         FROM
             {MOVIE_LIST}
+        WHERE prdtStatNm = '개봉'
         GROUP BY prdtYear
         ORDER BY prdtYear
     """
     df = pd.read_sql_query(sql, conn)
     print(df)
 
-    ax = df.plot(kind='bar', x='prdtYear', y='영화 제작 수', color=color_chart_func(df), title='연도별 영화 제작 수')
+    ax = df.plot(kind='bar', x='prdtYear', y='영화 수', color=color_chart_func(df), title='연도별 개봉 영화 수')
     ax.set_xlabel(None)
 
     # x 축 label 각도
