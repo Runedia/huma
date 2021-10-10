@@ -12,11 +12,9 @@
 
 import pandas as pd
 from matplotlib import pyplot as plt
-import matplotlib.ticker as mticker
 
 from DBMTool import conn
-from analytics.Utils import color_chart_func
-from cf import BOXOFFICE_LIST
+import analytics.Utils
 
 
 def generated_report():
@@ -45,10 +43,12 @@ def generated_report():
     """
     df = pd.read_sql_query(sql, conn)
     df['관객 수'] = (df['audiAcc'] / df['cnt'])
+
+    # 값이 없는 경우가 있다..
     df['관객 수'] = df['관객 수'].fillna(0)
     df['관객 수'] = df['관객 수'].astype(int)
 
-    df_prdtyear = df['prdtYear']
+    df_prdtyear = df['prdtYear'].copy()
     df_prdtyear = df_prdtyear.drop_duplicates()
     df_prdtyear = df_prdtyear.reset_index()
 
