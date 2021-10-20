@@ -14,7 +14,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from DBMTool import conn
-import analytics.Utils
+from analytics.Utils import init
+import json
+
+init()
 
 
 def generated_report():
@@ -42,6 +45,8 @@ def generated_report():
                   
     """
     df = pd.read_sql_query(sql, conn)
+    df['audiAcc'] = df['audiAcc'].fillna(0)
+    df['audiAcc'] = df['audiAcc'].astype(int)
     df['관객 수'] = (df['audiAcc'] / df['cnt'])
 
     # 값이 없는 경우가 있다..
@@ -60,7 +65,78 @@ def generated_report():
         df_temp = df[df['prdtYear'] == prdtyear].head(3)
         df_margin = pd.concat([df_margin, df_temp])
 
+    df_margin = df_margin.sort_values(by=['prdtYear', 'cnt', 'audiAcc'], ascending=[True, False, False])
     print(df_margin.to_string())
+
+    category = []
+    temp = []
+    repGenreNm = []
+    sub_series = {}
+
+    for idx, data in df_prdtyear.iterrows():
+        prdtYear = data[1]
+        category.append(prdtYear)
+        df_temp = df[df['prdtYear'] == prdtYear].head(3).copy()
+
+        for cnt in range(3):
+            name = df_temp['repGenreNm'].iloc[cnt]
+            repGenreNm.append(name)
+            temp.append({
+                'year': prdtYear,
+                'name': name,
+                'auditot': int(df_temp['cnt'].iloc[cnt]),
+                'audiavg': int(df_temp['관객 수'].iloc[cnt])
+            })
+            # 타입 오류로 인해 int로 변환 (Object of type int64 is not JSON serializable)
+
+    repGenreNm = list(dict.fromkeys(repGenreNm))
+    series = []
+
+    for item in repGenreNm:
+        series.append({
+            'name': item,
+            'type': 'bar',
+            'stack': 'genre',
+            'emphasis': {
+                'focus': 'series',
+            },
+            'data': [],
+        })
+
+    for idx, data in df_prdtyear.iterrows():
+        prdtYear = data[1]
+        tempdata = {}
+        tempdata_audiavg = {}
+        for item in repGenreNm:
+            tempdata[item] = 0
+            tempdata_audiavg[item] = 0
+
+        for cnt in range(3):
+            result = list(filter(lambda x: x['year'] == prdtYear, temp))
+            for sdata in result:
+                tempdata[sdata['name']] = sdata['auditot']
+                tempdata_audiavg[sdata['name']] = sdata['audiavg']
+
+        for gen in repGenreNm:
+            pos = next((index for (index, item) in enumerate(series) if item['name'] == gen), None)
+            series[pos]['data'].append(tempdata[gen])
+
+        sub_series[prdtYear] = []
+        for gen in repGenreNm:
+            sub_series[prdtYear].append({
+                'name': gen,
+                'value': tempdata_audiavg[gen]
+            })
+
+    jsonData = {
+        'category': category,
+        'series': series,
+        'sub_series': sub_series,
+    }
+    print(jsonData)
+
+    with open('./Chart2.json', 'w') as outfile:
+        json.dump(jsonData, outfile)
 
     # ax = df_margin.plot(kind='bar', x='prdtYear', y='영화 수', color=color_chart_func(df_margin), title='연도별 개봉 영화 수')
     plt.figure(figsize=(12, 6))
@@ -71,9 +147,10 @@ def generated_report():
     for tick in ax.get_xticklabels():
         tick.set_rotation(0)
 
-    plt.show()
+    # plt.show()
 
     # 차트 모양 고민 필요
+    # Vue.js로 만듬.
 
 
 if __name__ == '__main__':

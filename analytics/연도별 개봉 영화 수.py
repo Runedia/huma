@@ -1,5 +1,5 @@
 """
-연도별 영화 제작 수
+연도별 개봉 영화 수
 막대 차트
 
 최초 작성일: 2021-10-01
@@ -15,8 +15,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from DBMTool import conn
-from analytics.Utils import color_chart_func
+from analytics.Utils import init, color_chart_func
 from cf import MOVIE_LIST
+
+init()
 
 
 def generated_report():
@@ -47,7 +49,7 @@ def generated_report():
         else:
             ax.annotate(txt, (p.get_x(), p.get_height() * 1.01))
 
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':

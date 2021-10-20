@@ -3,8 +3,11 @@ from itertools import cycle, islice
 from matplotlib import font_manager, rc
 
 font_path = '../assets/D2Coding-Ver1.3.2-20180524.ttf'
-font_name = font_manager.FontProperties(fname=font_path).get_name()
-rc('font', family=font_name)
+
+
+def init():
+    font_name = font_manager.FontProperties(fname=font_path).get_name()
+    rc('font', family=font_name)
 
 
 def color_chart_func(df):

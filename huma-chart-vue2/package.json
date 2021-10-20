@@ -1,6 +1,6 @@
 {
     "name": "huma-chart-vue2",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "private": true,
     "scripts": {
         "serve": "vue-cli-service serve",
@@ -10,12 +10,15 @@
     "dependencies": {
         "core-js": "^3.6.5",
         "echarts": "^5.2.1",
+        "mdi-vue": "^3.0.8",
         "vue": "^2.6.11",
-        "vue-echarts": "^6.0.0"
+        "vue-echarts": "^6.0.0",
+        "vue-router": "^3.2.0"
     },
     "devDependencies": {
         "@vue/cli-plugin-babel": "~4.5.0",
         "@vue/cli-plugin-eslint": "~4.5.0",
+        "@vue/cli-plugin-router": "~4.5.0",
         "@vue/cli-service": "~4.5.0",
         "@vue/composition-api": "^1.2.4",
         "babel-eslint": "^10.1.0",

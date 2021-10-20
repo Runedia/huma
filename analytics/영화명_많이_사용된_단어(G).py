@@ -20,9 +20,11 @@ from matplotlib import pyplot as plt
 from wordcloud import WordCloud
 
 from DBMTool import conn
-from analytics.Utils import color_chart_func, color_wc_func, font_path
+from analytics.Utils import init, color_chart_func, color_wc_func, font_path
 from cf import MOVIE_LIST, MOVIE_INFO
+import json
 
+init()
 
 def generated_report():
     sql = f"""
@@ -43,9 +45,31 @@ def generated_report():
 
     for idx, data in df.iterrows():
         msg = re.sub(r'[^\w]', ' ', data[0])
-        words += nlp.phrases(msg)
+        words += [a for a in nlp.phrases(msg) if ' ' not in a]
 
     count = Counter(words)
+    word_count = dict()
+    for tag, counts in count.most_common(50):
+        if len(str(tag)) > 1:
+            word_count[tag] = counts
+
+    # 차트 데이터용 json 파일 만들기
+    legendData = list(word_count.keys())
+    seriesData = []
+    for idx in range(len(word_count)):
+        nm = legendData[idx]
+        seriesData.append({
+            'name': nm,
+            'value': word_count[nm]
+        })
+
+    data = {
+        'legendData': legendData,
+        'seriesData': seriesData
+    }
+
+    with open('./Chart3.json', 'w') as outfile:
+        json.dump(data, outfile)
 
     word_count = dict()
     for tag, counts in count.most_common(30):
@@ -60,8 +84,8 @@ def generated_report():
     sorted_values = sorted(word_count.values(), reverse=True)
     plt.bar(range(len(word_count)), sorted_values, align='center', color=color_chart_func(df))
     plt.xticks(range(len(word_count)), list(sorted_key), rotation='75')
-    plt.title('영화명에 많이 사용된 단어 (G)')
-    plt.show()
+    plt.title('영화명에 많이 사용된 단어')
+    # plt.show()
 
     word_count = dict()
     for tag, counts in count.most_common(100):
@@ -73,7 +97,7 @@ def generated_report():
     plt.figure(figsize=(10, 10))
     plt.imshow(cloud)
     plt.axis('off')
-    plt.title('영화명에 많이 사용된 단어 (G)')
+    plt.title('영화명에 많이 사용된 단어')
     plt.show()
 
 

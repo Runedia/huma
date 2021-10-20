@@ -1,5 +1,5 @@
 """
-영화별 관람객 순위
+관람객 순위 Top 10
 막대 차트
 
 최초 작성일: 2021-10-07
@@ -15,8 +15,10 @@ from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 
 from DBMTool import conn
-from analytics.Utils import color_chart_func
+from analytics.Utils import init, color_chart_func
 from cf import BOXOFFICE_LIST
+
+init()
 
 
 def generated_report():
@@ -55,7 +57,7 @@ def generated_report():
         txt = str(p.get_height())
         ax.annotate(txt, (p.get_x() + 0.1, p.get_height() * 1.01))
 
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
