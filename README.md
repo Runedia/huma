@@ -7,7 +7,7 @@
 
 ### 개발 기간
 
-2021-09-27 ~ 진행중
+2021-09-27 ~ 2021-10-21
 
 ### 개발 환경
 
@@ -23,6 +23,7 @@
 ### 라이브러리
 
 - [requirements.txt](./assets/requirements.txt)
+- JPype는 개별 설치 필요 assets 폴더 참고
 
 ## 데이터 처리 과정별 기술 영역
 
@@ -51,7 +52,3 @@
 ## LICENSE
 
 - [Apache-2.0 License](./LICENSE)
-
-## Changelog
-
-- 작성예정

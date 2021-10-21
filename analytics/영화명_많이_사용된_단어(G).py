@@ -26,6 +26,7 @@ import json
 
 init()
 
+
 def generated_report():
     sql = f"""
         SELECT 

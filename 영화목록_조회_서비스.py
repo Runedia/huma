@@ -48,8 +48,10 @@ def get_movie_list():
             'itemPerPage': itemPerPage,
             'prdtStartYear': '2010',
             'prdtEndYear': '2021',
+            # 국가코드 (한국)
             # repNationCd (http://www.kobis.or.kr/kobisopenapi/webservice/rest/code/searchCodeList.xml?key={API_KEY}&comCode=2204)
             'repNationCd': '22041011',
+            # 영화 장르 (장편, 단편, 옵니버스, 기타)
             # movieTypeCd (http://kobis.or.kr/kobisopenapi/webservice/rest/code/searchCodeList.xml?key={API_KEY}&comCode=2201)
             'movieTypeCd': '220101',
         }

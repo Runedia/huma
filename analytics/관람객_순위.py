@@ -27,7 +27,7 @@ def generated_report():
             *
         FROM
             (SELECT 
-                movieCd, movieNm, openDt, MAX(audiAcc) AS audiAcc, CAST((MAX(audiAcc) / 10000) AS SIGNED INTEGER) AS "관객 수"
+                movieCd, movieNm, MAX(audiAcc) AS audiAcc, CAST((MAX(audiAcc) / 10000) AS SIGNED INTEGER) AS "관객 수"
             FROM
                 {BOXOFFICE_LIST}
             WHERE
@@ -38,7 +38,7 @@ def generated_report():
         LIMIT 10
     """
     df = pd.read_sql_query(sql, conn)
-    print(df)
+    print(df.to_string())
 
     # 단위 생성
     plt.figure(figsize=(12, 6))

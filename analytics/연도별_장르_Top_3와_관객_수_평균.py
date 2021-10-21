@@ -38,19 +38,15 @@ def generated_report():
         WHERE  ml.prdtStatNm = '개봉'
                AND mi.audits != ''
                AND mi.audits != '청소년관람불가'
+               AND box.movieCd IS NOT NULL
         GROUP  BY ml.repGenreNm,
                   ml.prdtYear
         ORDER  BY ml.prdtYear,
-                  cnt DESC 
-                  
+                  cnt DESC
     """
     df = pd.read_sql_query(sql, conn)
-    df['audiAcc'] = df['audiAcc'].fillna(0)
     df['audiAcc'] = df['audiAcc'].astype(int)
     df['관객 수'] = (df['audiAcc'] / df['cnt'])
-
-    # 값이 없는 경우가 있다..
-    df['관객 수'] = df['관객 수'].fillna(0)
     df['관객 수'] = df['관객 수'].astype(int)
 
     df_prdtyear = df['prdtYear'].copy()

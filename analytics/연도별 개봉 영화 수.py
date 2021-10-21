@@ -24,7 +24,7 @@ init()
 def generated_report():
     sql = f"""
         SELECT 
-            prdtYear, COUNT(*) as '영화 수'
+            prdtYear, COUNT(*) as 'mvcnt'
         FROM
             {MOVIE_LIST}
         WHERE prdtStatNm = '개봉'
@@ -34,7 +34,7 @@ def generated_report():
     df = pd.read_sql_query(sql, conn)
     print(df)
 
-    ax = df.plot(kind='bar', x='prdtYear', y='영화 수', color=color_chart_func(df), title='연도별 개봉 영화 수')
+    ax = df.plot(kind='bar', x='prdtYear', y='mvcnt', color=color_chart_func(df), title='연도별 개봉 영화 수')
     ax.set_xlabel(None)
 
     # x 축 label 각도

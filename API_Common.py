@@ -49,6 +49,10 @@ def get_api_request(url, comment):
         # 데이터를 조회한다.
         response = request.urlopen(req)
 
+        # 200: 성공
+        # 404: 페이지 찾을 수 없음
+        # 502: 서버 네트워크 연결 실패
+
         # Http Code가 200일 경우 통신 성공
         if response.getcode() == 200:
             return json.loads(response.read().decode('utf-8'))
